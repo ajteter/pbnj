@@ -16,7 +16,7 @@ _pbnj is a simple, minimal self-hosted pastebin solution, focused on getting you
 
 [Features](#-features) · [Why?](#-why) · [Cost](#-cost) · [Speedrun](#-speedrun-get-started-under-a-minute) · [Not a Feature](#-intentionally-missing) · [Acknowledgements](#-acknowledgements)
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/bhavnicksm/pbnj)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ajteter/pbnj)
 
 </div>
 
