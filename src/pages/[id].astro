@@ -1,6 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import hljs from 'highlight.js';
+import { renderMarkdown } from '@/lib/markdown';
 
 const { id } = Astro.params;
 
@@ -30,15 +31,27 @@ if (paste.secret_key) {
 	}
 }
 
-// Highlight code server-side
-let highlightedCode: string;
-try {
-	const result = hljs.highlight(paste.code, { language: paste.language });
-	highlightedCode = result.value;
-} catch {
-	// Fallback to auto-detection if language not supported
-	const result = hljs.highlightAuto(paste.code);
-	highlightedCode = result.value;
+// Highlight code server-side (or render Markdown)
+const isMarkdown = paste.language === 'markdown';
+let highlightedCode: string = '';
+let renderedMarkdown: string = '';
+
+if (isMarkdown) {
+	try {
+		renderedMarkdown = await renderMarkdown(paste.code);
+	} catch (error) {
+		console.error('Error rendering markdown:', error);
+		renderedMarkdown = '<p>Error rendering markdown.</p>';
+	}
+} else {
+	try {
+		const result = hljs.highlight(paste.code, { language: paste.language });
+		highlightedCode = result.value;
+	} catch {
+		// Fallback to auto-detection if language not supported
+		const result = hljs.highlightAuto(paste.code);
+		highlightedCode = result.value;
+	}
 }
 
 // Prepare OG metadata
@@ -163,7 +176,7 @@ const codePreview = paste.code.slice(0, 150).replace(/\n/g, ' ').trim() + (paste
 							<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
 							<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
 						</svg>
-						Copy Code
+						Copy
 					</button>
 					<button
 						id="mobile-download-btn"
@@ -194,11 +207,20 @@ const codePreview = paste.code.slice(0, 150).replace(/\n/g, ' ').trim() + (paste
 				</div>
 			</div>
 		</div>
-
-		<div class="border border-paper-border rounded overflow-hidden code-block bg-paper-bg2">
-			<pre class="bg-paper-bg2"><code class="hljs" set:html={highlightedCode} /></pre>
-		</div>
+		
+		{isMarkdown ? (
+			<div class="border border-paper-border rounded overflow-hidden bg-paper-bg2 markdown-body">
+				<article set:html={renderedMarkdown} />
+			</div>
+		) : (
+			<div class="border border-paper-border rounded overflow-hidden code-block bg-paper-bg2">
+				<pre class="bg-paper-bg2"><code class="hljs" set:html={highlightedCode} /></pre>
+			</div>
+		)}
 	</div>
+
+	<!-- Invisible element to hold raw code for reliable copying/downloading -->
+	<template id="raw-paste-code">{paste.code}</template>
 
 	<script is:inline>
 		// Show delete buttons if logged in
@@ -229,11 +251,13 @@ const codePreview = paste.code.slice(0, 150).replace(/\n/g, ' ').trim() + (paste
 		});
 
 		// Copy code (desktop + mobile)
+		function getRawPasteCode() {
+			const template = document.getElementById('raw-paste-code');
+			return template?.content?.textContent ?? '';
+		}
+
 		function copyCode() {
-			const code = document.querySelector('pre code')?.textContent;
-			if (code) {
-				navigator.clipboard.writeText(code);
-			}
+			navigator.clipboard.writeText(getRawPasteCode());
 			menuDropdown?.classList.add('hidden');
 		}
 
@@ -273,17 +297,15 @@ const codePreview = paste.code.slice(0, 150).replace(/\n/g, ' ').trim() + (paste
 
 		// Download (desktop + mobile)
 		function downloadFile(btn) {
-			const code = document.querySelector('pre code')?.textContent;
+			const code = getRawPasteCode();
 			const filename = btn?.dataset.filename || 'download.txt';
-			if (code) {
-				const blob = new Blob([code], { type: 'text/plain' });
-				const url = URL.createObjectURL(blob);
-				const a = document.createElement('a');
-				a.href = url;
-				a.download = filename;
-				a.click();
-				URL.revokeObjectURL(url);
-			}
+			const blob = new Blob([code], { type: 'text/plain' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = filename;
+			a.click();
+			URL.revokeObjectURL(url);
 			menuDropdown?.classList.add('hidden');
 		}
 
@@ -336,6 +358,108 @@ const codePreview = paste.code.slice(0, 150).replace(/\n/g, ' ').trim() + (paste
 		}
 		.code-block code {
 			font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+		}
+
+		/* Markdown Base Styles - paper-minimalist vibe */
+		.markdown-body article {
+			padding: 1.5rem;
+			color: var(--paper-text);
+			font-size: 1rem;
+			line-height: 1.6;
+			word-wrap: break-word;
+		}
+		.markdown-body article > *:first-child { margin-top: 0; }
+		.markdown-body article > *:last-child { margin-bottom: 0; }
+		
+		.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6 {
+			margin-top: 1.5em;
+			margin-bottom: 0.5em;
+			font-weight: 600;
+			line-height: 1.25;
+		}
+		.markdown-body h1 { font-size: 2em; padding-bottom: 0.3em; border-bottom: 1px solid var(--paper-border); }
+		.markdown-body h2 { font-size: 1.5em; padding-bottom: 0.3em; border-bottom: 1px solid var(--paper-border); }
+		.markdown-body h3 { font-size: 1.25em; }
+		
+		.markdown-body p, .markdown-body blockquote, .markdown-body ul, .markdown-body ol, .markdown-body dl, .markdown-body table, .markdown-body pre, .markdown-body details {
+			margin-top: 0;
+			margin-bottom: 16px;
+		}
+		
+		.markdown-body a {
+			color: var(--paper-border-active);
+			text-decoration: none;
+		}
+		.markdown-body a:hover { text-decoration: underline; }
+		
+		.markdown-body ul, .markdown-body ol { padding-left: 2em; }
+		.markdown-body ul { list-style-type: disc; }
+		.markdown-body ol { list-style-type: decimal; }
+		
+		.markdown-body blockquote {
+			margin: 0 0 16px 0;
+			padding: 0 1em;
+			color: var(--paper-muted);
+			border-left: 0.25em solid var(--paper-border);
+		}
+		
+		.markdown-body table {
+			border-spacing: 0;
+			border-collapse: collapse;
+			display: block;
+			width: max-content;
+			max-width: 100%;
+			overflow: auto;
+		}
+		.markdown-body table th, .markdown-body table td {
+			padding: 6px 13px;
+			border: 1px solid var(--paper-border);
+		}
+		.markdown-body table tr {
+			background-color: transparent;
+			border-top: 1px solid var(--paper-border);
+		}
+		.markdown-body table tr:nth-child(2n) {
+			background-color: rgba(150, 150, 150, 0.05);
+		}
+		
+		.markdown-body img {
+			max-width: 100%;
+			box-sizing: content-box;
+		}
+		
+		.markdown-body hr {
+			height: 0.25em;
+			padding: 0;
+			margin: 24px 0;
+			background-color: var(--paper-border);
+			border: 0;
+		}
+		
+		.markdown-body code {
+			padding: 0.2em 0.4em;
+			margin: 0;
+			font-size: 85%;
+			white-space: break-spaces;
+			background-color: rgba(150, 150, 150, 0.15);
+			border-radius: 6px;
+			font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+		}
+		
+		.markdown-body pre {
+			word-wrap: normal;
+			background-color: var(--paper-bg2);
+			border: 1px solid var(--paper-border);
+			border-radius: 6px;
+		}
+		.markdown-body pre > code {
+			padding: 0;
+			margin: 0;
+			font-size: 100%;
+			word-break: normal;
+			white-space: pre;
+			background: transparent;
+			border: 0;
 		}
 	</style>
 </Layout>
