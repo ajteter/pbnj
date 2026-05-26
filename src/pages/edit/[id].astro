@@ -1,0 +1,206 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import config from '@/lib/config';
+
+const { id } = Astro.params;
+const runtime = Astro.locals.runtime as any;
+
+let paste: any = null;
+
+try {
+	paste = await runtime.env.DB.prepare('SELECT * FROM pastes WHERE id = ?').bind(id).first();
+} catch (error) {
+	console.error('Error fetching paste for edit:', error);
+}
+
+if (!paste) {
+	return Astro.redirect('/404');
+}
+
+// Private pastes still require their secret_key in URL to load the edit page.
+if (paste.secret_key) {
+	const providedKey = Astro.url.searchParams.get('key');
+	if (providedKey !== paste.secret_key) {
+		return Astro.redirect('/404');
+	}
+}
+---
+
+<Layout title={`Edit Paste - ${config.name}`}>
+	<div class="max-w-6xl mx-auto pb-12">
+		<div class="mb-3 flex items-center justify-between gap-3">
+			<input
+				type="text"
+				id="filename"
+				class="text-xl sm:text-2xl font-medium text-paper-text truncate"
+				placeholder="snippet"
+				value={paste.filename || ''}
+				style="outline: none; border: none; flex: 1; min-width: 0; background: transparent;"
+			/>
+
+			<div class="flex gap-3 flex-shrink-0">
+				<select
+					id="language"
+					class="p-2 text-paper-text bg-paper-bg2 border border-paper-border rounded hover:border-paper-border-hover transition-colors cursor-pointer"
+					title="Select language"
+					style="outline: none;"
+				>
+					<option value="" selected={!paste.language}>auto</option>
+					<option value="javascript" selected={paste.language === 'javascript'}>JS</option>
+					<option value="typescript" selected={paste.language === 'typescript'}>TS</option>
+					<option value="python" selected={paste.language === 'python'}>Python</option>
+					<option value="rust" selected={paste.language === 'rust'}>Rust</option>
+					<option value="go" selected={paste.language === 'go'}>Go</option>
+					<option value="java" selected={paste.language === 'java'}>Java</option>
+					<option value="c" selected={paste.language === 'c'}>C</option>
+					<option value="cpp" selected={paste.language === 'cpp'}>C++</option>
+					<option value="csharp" selected={paste.language === 'csharp'}>C#</option>
+					<option value="ruby" selected={paste.language === 'ruby'}>Ruby</option>
+					<option value="php" selected={paste.language === 'php'}>PHP</option>
+					<option value="swift" selected={paste.language === 'swift'}>Swift</option>
+					<option value="kotlin" selected={paste.language === 'kotlin'}>Kotlin</option>
+					<option value="html" selected={paste.language === 'html'}>HTML</option>
+					<option value="css" selected={paste.language === 'css'}>CSS</option>
+					<option value="json" selected={paste.language === 'json'}>JSON</option>
+					<option value="yaml" selected={paste.language === 'yaml'}>YAML</option>
+					<option value="markdown" selected={paste.language === 'markdown'}>MD</option>
+					<option value="bash" selected={paste.language === 'bash'}>Bash</option>
+					<option value="sql" selected={paste.language === 'sql'}>SQL</option>
+					<option value="plaintext" selected={paste.language === 'plaintext'}>Text</option>
+				</select>
+
+				<button
+					id="save-btn"
+					class="p-2 text-paper-text bg-paper-bg2 border border-paper-border rounded hover:border-paper-border-hover transition-colors"
+					title="Save changes"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+						<polyline points="17 21 17 13 7 13 7 21"></polyline>
+						<polyline points="7 3 7 8 15 8"></polyline>
+					</svg>
+				</button>
+			</div>
+		</div>
+
+		<div id="editor-wrapper" class="border border-paper-border rounded overflow-hidden bg-paper-bg2" style="transition: border-color 0.3s ease;">
+			<textarea
+				id="code-input"
+				class="w-full bg-paper-bg2 text-paper-text resize-none"
+				placeholder="paste your code here..."
+				spellcheck="false"
+				style="min-height: 480px; padding: 1.5rem; outline: none; line-height: 1.625; font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 0.875rem;"
+			>{paste.code}</textarea>
+		</div>
+	</div>
+</Layout>
+
+<script define:vars={{ id }}>
+	const isLoggedIn = localStorage.getItem('pbnj_logged_in');
+	if (!isLoggedIn) {
+		window.location.href = '/login?return=' + encodeURIComponent(window.location.pathname + window.location.search);
+	}
+
+	const codeInput = document.getElementById('code-input');
+	const filenameInput = document.getElementById('filename');
+	const languageSelect = document.getElementById('language');
+	const saveBtn = document.getElementById('save-btn');
+	const editorWrapper = document.getElementById('editor-wrapper');
+
+	function showError() {
+		editorWrapper.style.borderColor = '#a63d40';
+		editorWrapper.classList.add('shake');
+
+		setTimeout(() => {
+			editorWrapper.classList.remove('shake');
+		}, 500);
+
+		setTimeout(() => {
+			editorWrapper.style.borderColor = 'var(--paper-border)';
+		}, 2000);
+	}
+
+	async function updatePaste() {
+		const code = codeInput.value;
+		if (!code.trim()) {
+			showError();
+			codeInput.focus();
+			return;
+		}
+
+		saveBtn.style.opacity = '0.5';
+		saveBtn.style.pointerEvents = 'none';
+
+		try {
+			const body = { code };
+
+			if (filenameInput.value.trim()) {
+				body.filename = filenameInput.value.trim();
+			}
+			if (languageSelect.value) {
+				body.language = languageSelect.value;
+			}
+
+			const response = await fetch(`/api/${id}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(body),
+				credentials: 'same-origin',
+			});
+
+			if (!response.ok) {
+				const data = await response.json().catch(() => ({}));
+				throw new Error(data.error || 'Failed to update paste');
+			}
+
+			const params = new URLSearchParams(window.location.search);
+			const key = params.get('key');
+			window.location.href = key ? `/${id}?key=${encodeURIComponent(key)}` : `/${id}`;
+		} catch (err) {
+			showError();
+			saveBtn.style.opacity = '1';
+			saveBtn.style.pointerEvents = 'auto';
+		}
+	}
+
+	saveBtn.addEventListener('click', updatePaste);
+
+	codeInput.addEventListener('keydown', (e) => {
+		if ((e.ctrlKey || e.metaKey) && (e.key === 'Enter' || e.key === 's')) {
+			e.preventDefault();
+			updatePaste();
+		}
+	});
+
+	document.addEventListener('keydown', (e) => {
+		if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+			e.preventDefault();
+			updatePaste();
+		}
+	});
+
+	codeInput.focus();
+</script>
+
+<style>
+	textarea::placeholder {
+		color: var(--paper-muted);
+	}
+
+	#filename::placeholder {
+		color: var(--paper-text);
+		opacity: 1;
+	}
+
+	@keyframes shake {
+		0%, 100% { transform: translateX(0); }
+		10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+		20%, 40%, 60%, 80% { transform: translateX(4px); }
+	}
+
+	.shake {
+		animation: shake 0.5s ease-in-out;
+	}
+</style>
