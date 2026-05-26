@@ -1,10 +1,10 @@
 /**
- * pbnj configuration
- * @see https://github.com/bhavnicksm/pbnj
+ * Markdown Drop configuration
+ * @see https://github.com/ajteter/pbnj
  */
 export default {
   // Site name shown in title
-  name: "pbnj",
+  name: "Markdown Drop",
 
   // Path to logo image
   logo: "/logo.png",
@@ -29,8 +29,8 @@ export default {
   theme: "flexoki-light",
 
   // Footer configuration (optional)
-  // footer: {
-  //   text: "spread the code 🥪",
-  //   link: "https://github.com/bhavnicksm/pbnj",
-  // },
+  footer: {
+    text: "spread the code 🥪",
+    link: "https://github.com/ajteter/pbnj",
+  },
 };

@@ -25,7 +25,7 @@ export interface PbnjConfig {
 }
 
 const defaults: PbnjConfig = {
-  name: 'pbnj',
+  name: 'Markdown Drop',
   logo: '/logo.png',
   idStyle: 'sandwich',
   homepage: true,
@@ -39,7 +39,7 @@ const defaults: PbnjConfig = {
   },
   footer: {
     text: 'spread the code 🥪',
-    link: 'https://github.com/bhavnicksm/pbnj',
+    link: 'https://github.com/ajteter/pbnj',
   },
 };
 

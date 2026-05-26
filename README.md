@@ -1,20 +1,16 @@
 <div align="center">
 
-![pbnj logo](./assets/pbnj_logo.png)
+![Markdown Drop logo](./assets/pbnj_logo.png)
 
-# 🥪 pbnj 📄
+# Markdown Drop
 
-[![npm version](https://img.shields.io/npm/v/@pbnjs/cli?label=cli&color=cb3837)](https://www.npmjs.com/package/@pbnjs/cli)
-[![npm downloads](https://img.shields.io/npm/dm/@pbnjs/cli?color=cb3837)](https://www.npmjs.com/package/@pbnjs/cli)
-[![npm bundle size](https://img.shields.io/bundlephobia/minzip/@pbnjs/cli?label=size)](https://bundlephobia.com/package/@pbnjs/cli)
-[![GitHub stars](https://img.shields.io/github/stars/bhavnicksm/pbnj?style=flat&color=yellow)](https://github.com/bhavnicksm/pbnj/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/bhavnicksm/pbnj?style=flat&color=blue)](https://github.com/bhavnicksm/pbnj/network/members)
-[![Docs](https://img.shields.io/badge/docs-pbnj-green)](./docs)
-[![License](https://img.shields.io/github/license/bhavnicksm/pbnj)](./LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/ajteter/pbnj?style=flat&color=yellow)](https://github.com/ajteter/pbnj/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/ajteter/pbnj?style=flat&color=blue)](https://github.com/ajteter/pbnj/network/members)
+[![License](https://img.shields.io/github/license/ajteter/pbnj)](./LICENSE)
 
-_pbnj is a simple, minimal self-hosted pastebin solution, focused on getting you started quickly and easily_
+_Fast, clean Markdown sharing._
 
-[Features](#-features) · [Why?](#-why) · [Cost](#-cost) · [Speedrun](#-speedrun-get-started-under-a-minute) · [Not a Feature](#-intentionally-missing) · [Acknowledgements](#-acknowledgements)
+[Live site](https://sharemd.steammmmm.me) · [Features](#-features) · [Deploy](#-deploy) · [Automatic deploys](#-automatic-deploys-on-push) · [Acknowledgements](#-acknowledgements)
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ajteter/pbnj)
 
@@ -22,14 +18,13 @@ _pbnj is a simple, minimal self-hosted pastebin solution, focused on getting you
 
 ## ✨ Features
 
-- 🎨 **Syntax highlighting** for 100+ languages with 12 beautiful themes
-- 🧹 **Clean interface** — distraction-free, minimal design
-- 🥪 **Memorable URLs** — `crunchy-peanut-butter-sandwich` instead of `x7f9a2`
-- ⌨️ **CLI-first** — `pbnj file.py` and you're done
-- 🌐 **Web interface** — create and delete pastes from the browser too
-- 🔒 **Private pastes** — unlisted pastes with optional secret keys
-- ☁️ **Edge-powered** — fast globally, free forever on Cloudflare
-- ...and many more!
+- 📄 **Markdown-first sharing** — paste Markdown and share a clean rendered page.
+- 🎨 **Syntax highlighting** — code blocks still look good with Highlight.js themes.
+- 🧹 **Clean interface** — distraction-free pages for sending notes, docs, snippets, and drafts to friends.
+- 🔗 **Memorable URLs** — sandwich-style IDs are easier to share than random hashes.
+- ✏️ **Edit existing drops** — log in with `AUTH_KEY` and edit saved content from the web UI.
+- 🔒 **Private drops** — unlisted pages with optional secret keys.
+- ☁️ **Edge-powered** — runs on Cloudflare Workers + D1.
 
 <details>
 <summary>🎭 Theme Gallery</summary>
@@ -51,110 +46,134 @@ _pbnj is a simple, minimal self-hosted pastebin solution, focused on getting you
 
 </details>
 
-## 🙋🏻‍♀️ Why?
+## 🌐 Live site
 
-Another pastebin? Really?
+Markdown Drop is currently deployed at:
 
-When I wanted to self-host a pastebin, I found plenty of options—but they were all *too much*. Git-based version control, OAuth, elaborate GUIs. I just wanted something I could deploy in under a minute with a CLI that actually works.
+```text
+https://sharemd.steammmmm.me
+```
 
-So I built this.
+Use it as a fast personal Markdown sharing site: paste content, save it, and send the rendered page link to a friend.
 
-**Why not Gist?** Maybe you want to own your data. Maybe you don't want to depend on GitHub. Maybe you just like self-hosting things. Or maybe you're a little autistic like me and enjoy having your own stuff :)
+## 🚀 Deploy
 
-**What makes pbnj different:**
-- Actually beautiful — most feature-heavy pastebins look ugly
-- Deploy in seconds with one click
-- CLI-first workflow (`pbnj file.py` → done)
-- No accounts, no git, no bloat
-- Just paste and share
-- Cloudflare's free tier will last you forever
+### Option A: Deploy to Cloudflare
+
+Click the deploy button above and follow Cloudflare's prompts.
+
+Important setup notes:
+
+1. Set the runtime secret `AUTH_KEY` in Cloudflare.
+2. Make sure the D1 schema is initialized.
+3. If you add or change `AUTH_KEY` after the first deploy, redeploy the Worker.
+
+`AUTH_KEY` belongs in the Worker runtime settings:
+
+```text
+Worker → Settings → Variables and Secrets → Production → Secret: AUTH_KEY
+```
+
+Not only in build variables. Build variables are available during build; the login API reads runtime `env.AUTH_KEY`.
+
+### Option B: Deploy from local CLI
+
+```bash
+npm install
+npm run deploy
+```
+
+The deploy script runs the D1 schema setup and then deploys the Worker:
+
+```bash
+npm run db:setup
+npx wrangler deploy
+```
+
+## 🔁 Automatic deploys on push
+
+The Deploy to Cloudflare button is mainly for initial setup. It does **not always mean future `git push` events will automatically redeploy your Worker**.
+
+To enable automatic deployments, connect the Worker to this GitHub repository with Cloudflare Workers Builds:
+
+1. Open Cloudflare Dashboard.
+2. Go to **Workers & Pages**.
+3. Select your Markdown Drop Worker.
+4. Open **Settings → Builds**.
+5. Click **Connect** / **Connect repository**.
+6. Select `ajteter/pbnj` and the `main` branch.
+7. Save and deploy.
+
+After that, pushes to `main` should trigger a Cloudflare build and deployment.
+
+If Cloudflare can only see some repositories, check the GitHub App access:
+
+```text
+GitHub → Settings → Applications → Installed GitHub Apps → Cloudflare Workers & Pages → Repository access
+```
+
+If access is set to **Only select repositories**, add `ajteter/pbnj` or switch to **All repositories**.
+
+## 🔧 Configuration
+
+Main site configuration lives in:
+
+```text
+pbnj.config.js
+```
+
+Current site branding:
+
+```js
+name: "Markdown Drop"
+footer: {
+  text: "spread the code 🥪",
+  link: "https://github.com/ajteter/pbnj",
+}
+```
+
+The default page description is:
+
+```text
+Fast, clean Markdown sharing.
+```
+
+## 🔐 Authentication model
+
+Markdown Drop uses a simple single-user model:
+
+- `AUTH_KEY` is the global admin key.
+- Logged-in users can create, edit, and delete saved drops.
+- Private drops use a per-page `?key=...` URL parameter for unlisted access.
+
+This is intentionally lightweight. It is meant for a personal sharing site, not a multi-user publishing platform.
 
 ## 💰 Cost
 
-Now, I know some people might wonder, "This is deployed on Cloudflare, they might charge us eventually!" That's why I wrote this section. Let's do some basic math to figure out how much storage we can use:
+Cloudflare's free tier is enough for personal use in most cases:
 
-**Cloudflare D1 Free Tier:**
-- 500 MB storage
-- 5 million reads/day
-- 100,000 writes/day
-
-**Typical paste sizes:**
-- Small snippet: ~500 bytes
-- Medium file: ~2-5 KB
-- Large file: ~10-20 KB
-- Average: ~5 KB
-
-**The math:**
-- 500 MB ÷ 5 KB = **~100,000 pastes**
-- At 10 pastes/day = **27+ years** of storage
-- At 50 pastes/day = **5+ years** of storage
-
-For personal use, you'll never hit these limits. Even if you somehow do, D1's paid tier is just $0.75/GB-month. You'd need to be running a pretty popular pastebin to spend more than a few cents.
-
-**TL;DR:** Cloudflare's free tier is more than enough. Stop worrying and start pasting.
-
-## ⚡ Speedrun: Get Started Under a Minute!
-
-**Step 1:** Click the deploy button above and follow the prompts. The most important here is to set the `AUTH_KEY` because you'd need that to make the pastes. Once you've clicked deploy, it takes about 25-30 seconds and your deployment will be ready! 
-
-![deploy](./assets/deploy.png)
-
-**Step 2:** Install the CLI
-```bash
-npm install -g @pbnjs/cli
-```
-
-**Step 3:** Configure it
-```bash
-pbnj --init
-# Enter your worker URL and AUTH_KEY
-```
-
-**Step 4:** Paste!
-```bash
-pbnj myfile.py
-# → https://your-pbnj.workers.dev/crunchy-peanut-butter-sandwich
-```
-
-That's it. You now have your own pastebin.
-
-See [cli/README.md](./cli/README.md) for full CLI documentation.
-
-## 🚫 Intentionally Missing
-
-pbnj is opinionated. These features are **not bugs**—they're deliberate choices to keep things simple:
-
-- **No git integration** — It's a pastebin, not a repository.
-- **No OAuth/accounts** — Single user, single auth key. Done.
-- **No multi-user support** — Fork it and run your own.
-- **No comments/discussions** — Share code, not conversations.
-- **No folders/organization** — The homepage is your feed.
-- **No expiring pastes** — Your pastes live forever (or until you delete them).
-
-If you need these features, check out [Opengist](https://github.com/thomiceli/opengist) or [PrivateBin](https://github.com/PrivateBin/PrivateBin)—they're great projects that take a different approach.
+- D1 free storage is generous for Markdown snippets and small notes.
+- Workers run globally at the edge.
+- You can host a useful personal sharing site without maintaining a server.
 
 ## 🙏 Acknowledgements
 
-pbnj stands on the shoulders of giants. Shoutout to these awesome projects:
+Markdown Drop is based on [pbnj](https://github.com/bhavnicksm/pbnj), a minimal self-hosted pastebin by the original author.
 
-- [Opengist](https://github.com/thomiceli/opengist) — A self-hosted pastebin powered by Git
-- [PrivateBin](https://github.com/PrivateBin/PrivateBin) — A minimalist, open source online pastebin with encryption
-- [Hastebin](https://github.com/toptal/haste-server) — The OG open source pastebin
-- [0x0.st](https://0x0.st) — The no-bullshit file hosting and URL shortener
-- [Cloudflare Workers](https://workers.cloudflare.com) — For making serverless actually simple
-- [Astro](https://astro.build) — The web framework that makes this possible
+Thanks also to:
 
-And to everyone who's ever pasted code to share with a friend—you're the reason this exists.
+- [Cloudflare Workers](https://workers.cloudflare.com)
+- [Astro](https://astro.build)
+- [Highlight.js](https://highlightjs.org)
+- [Opengist](https://github.com/thomiceli/opengist)
+- [PrivateBin](https://github.com/PrivateBin/PrivateBin)
 
 ---
 
 <div align="center">
 
-If pbnj made your life a little easier, consider giving it a star ⭐
+Built for quick Markdown sharing.
 
-It helps others discover the project and makes me mass smile :)
-
-
-[![Star on GitHub](https://img.shields.io/github/stars/bhavnicksm/pbnj?style=social)](https://github.com/bhavnicksm/pbnj)
+[![Star on GitHub](https://img.shields.io/github/stars/ajteter/pbnj?style=social)](https://github.com/ajteter/pbnj)
 
 </div>
