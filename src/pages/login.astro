@@ -6,32 +6,48 @@ import config from '@/lib/config';
 <Layout title={`Login - ${config.name}`}>
 	<div class="flex flex-col items-center" style="justify-content: center; width: 100%; min-height: calc(100vh - 180px);">
 		<img src="/lock.png" alt="Lock" style="width: 120px; height: auto; margin-bottom: 48px;" />
-		<div id="auth-wrapper" class="bg-paper-bg2 rounded-lg p-2 shadow-sm flex items-center gap-3" style="width: min(320px, calc(100% - 32px)); border: 2px solid transparent; transition: border-color 0.3s ease;">
-			<input
-				type="password"
-				id="auth-key"
-				class="flex-1 px-3 py-2 bg-paper-bg2 text-paper-text placeholder-paper-muted focus:outline-none focus:ring-0"
-				placeholder="enter your auth key"
-				autocomplete="off"
-			/>
-			<button
-				id="continue-btn"
-				class="w-12 h-10 bg-paper-bg2 text-paper-text rounded-md font-medium hover:opacity-80 transition-opacity flex items-center justify-center"
-			>
-				<span style="font-size: 28px;">›</span>
-			</button>
-		</div>
+		<form id="auth-form" class="contents">
+			<div id="auth-wrapper" class="bg-paper-bg2 rounded-lg p-2 shadow-sm flex items-center gap-3" style="width: min(320px, calc(100% - 32px)); border: 2px solid transparent; transition: border-color 0.3s ease;">
+				<input
+					type="password"
+					id="auth-key"
+					name="password"
+					class="flex-1 px-3 py-2 bg-paper-bg2 text-paper-text placeholder-paper-muted focus:outline-none focus:ring-0"
+					placeholder="enter your auth key"
+					autocomplete="current-password"
+				/>
+				<button
+					type="submit"
+					id="continue-btn"
+					class="w-12 h-10 bg-paper-bg2 text-paper-text rounded-md font-medium hover:opacity-80 transition-opacity flex items-center justify-center"
+				>
+					<span style="font-size: 28px;">›</span>
+				</button>
+			</div>
+		</form>
 	</div>
 </Layout>
 
 <script>
+	const form = document.getElementById('auth-form') as HTMLFormElement;
 	const input = document.getElementById('auth-key') as HTMLInputElement;
 	const button = document.getElementById('continue-btn') as HTMLButtonElement;
 	const wrapper = document.getElementById('auth-wrapper') as HTMLDivElement;
 
-	// Get return URL from query params
+	// Get return URL from query params. Keep redirects same-origin and never redirect back to /login.
 	const urlParams = new URLSearchParams(window.location.search);
-	const returnUrl = urlParams.get('return') || '/';
+	function safeReturnUrl(value: string | null) {
+		if (!value) return '/';
+
+		try {
+			const url = new URL(value, window.location.origin);
+			if (url.origin !== window.location.origin || url.pathname === '/login') return '/';
+			return url.pathname + url.search + url.hash;
+		} catch {
+			return '/';
+		}
+	}
+	const returnUrl = safeReturnUrl(urlParams.get('return'));
 
 	// Check if already logged in
 	const isLoggedIn = localStorage.getItem('pbnj_logged_in');
@@ -88,12 +104,9 @@ import config from '@/lib/config';
 		}
 	}
 
-	button.addEventListener('click', validateAndRedirect);
-
-	input.addEventListener('keydown', (e) => {
-		if (e.key === 'Enter') {
-			validateAndRedirect();
-		}
+	form.addEventListener('submit', (e) => {
+		e.preventDefault();
+		validateAndRedirect();
 	});
 
 	// Focus input on load

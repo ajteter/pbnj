@@ -87,8 +87,10 @@ const hljsStylePath = `/styles/hljs-${config.theme}.css`;
 						// Reload to refresh any auth-dependent content
 						window.location.reload();
 					} else {
-						// Store current page to return after login
-						const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+						// Store current page to return after login, but never nest /login as its own return target
+						const currentPath = window.location.pathname + window.location.search;
+						const returnTarget = window.location.pathname === '/login' ? '/' : currentPath;
+						const returnUrl = encodeURIComponent(returnTarget);
 						window.location.href = '/login?return=' + returnUrl;
 					}
 				});
